@@ -182,4 +182,409 @@
       <strong>Instructions:</strong><br />
       • For <strong>Trials 1–5</strong>, keep your hands relaxed.<br />
       • For <strong>Trials 6–10</strong>, continuously squeeze the thumb pad
-      (thenar eminence) of your
+      (thenar eminence) of your non-dominant hand using your other hand.<br /><br />
+      1. Read the condition instruction at the top.<br />
+      2. Get into the correct hand position.<br />
+      3. Click <strong>Show letter row</strong> when you are ready.<br />
+      4. When the letters disappear, type them into the boxes in order.
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="card hidden" id="summary-card">
+    <h2>Summary of errors</h2>
+    <p>
+      Totals for
+      <span class="tag rhyming">Rhyming letters</span> and
+      <span class="tag non-rhyming">Non-rhyming letters</span>
+      under each condition (No squeeze vs Thumb-pad squeeze).
+    </p>
+    <div id="summaryTableContainer"></div>
+    <button type="button" id="downloadCsvBtn">Download CSV (trials + summary)</button>
+    <p class="small-text">
+      The CSV includes:
+      <br />• Trial-by-trial, letter-by-letter data
+      <br />• A summary section with total errors and error rates
+      for rhyming vs non-rhyming letters in each condition.
+    </p>
+  </div>
+
+  <script>
+    /**************************************************************
+     * LETTER SEQUENCES – taken from your worksheet image
+     *
+     * If anything looks slightly off compared to your sheet,
+     * edit that specific row in baseSequences below.
+     **************************************************************/
+    const baseSequences = [
+      { id: 1, name: "Row 1", letters: ["H","S","F","Q","B","C","D","P"] },
+      { id: 2, name: "Row 2", letters: ["G","D","B","T","Z","H","R","S"] },
+      { id: 3, name: "Row 3", letters: ["Q","M","Z","R","C","P","D","G"] },
+      { id: 4, name: "Row 4", letters: ["T","P","C","B","F","M","Q","Z"] },
+      { id: 5, name: "Row 5", letters: ["F","R","Z","S","B","P","G","T"] },
+      { id: 6, name: "Row 6", letters: ["C","G","H","P","M","Q","H","R"] },
+      { id: 7, name: "Row 7", letters: ["H","Q","R","M","C","T","D","B"] },
+      { id: 8, name: "Row 8", letters: ["D","P","T","C","R","Z","F","H"] },
+      { id: 9, name: "Row 9", letters: ["M","R","H","Z","C","R","B","T"] },
+      { id:10, name: "Row 10",letters: ["B","T","G","P","R","F","M","S"] },
+    ];
+
+    // Rhyming set as defined in the original activity
+    const rhymingSet = new Set(["B","C","D","G","P","T"]);
+
+    // Build sequences with rhymingFlags computed automatically
+    const sequences = baseSequences.map(seq => ({
+      ...seq,
+      rhymingFlags: seq.letters.map(l => rhymingSet.has(l) ? 1 : 0)
+    }));
+
+    // Conditions:
+    // - "noSqueeze": trials 1–5
+    // - "squeeze": trials 6–10
+    const conditionLabels = {
+      noSqueeze: "No squeeze (hands relaxed)",
+      squeeze:
+        "Thumb-pad squeeze (continuous squeezing of the thenar eminence of non-dominant hand)",
+    };
+
+    // Fixed exposure time: 20 seconds
+    const exposureTimeMs = 20000;
+
+    // Global state
+    let participantId = "";
+    let trials = [];
+    let currentTrialIndex = 0;
+    let results = [];
+    let currentTimerId = null;
+
+    // DOM refs
+    const setupCard = document.getElementById("setup-card");
+    const experimentCard = document.getElementById("experiment-card");
+    const summaryCard = document.getElementById("summary-card");
+
+    const participantIdInput = document.getElementById("participantId");
+    const startBtn = document.getElementById("startBtn");
+
+    const conditionInstruction = document.getElementById("conditionInstruction");
+    const trialInfo = document.getElementById("trialInfo");
+    const showSequenceBtn = document.getElementById("showSequenceBtn");
+    const sequenceDisplay = document.getElementById("sequenceDisplay");
+    const timerHint = document.getElementById("timerHint");
+
+    const recallPhase = document.getElementById("recallPhase");
+    const recallGrid = document.getElementById("recallGrid");
+    const saveTrialBtn = document.getElementById("saveTrialBtn");
+    const summaryTableContainer = document.getElementById("summaryTableContainer");
+    const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+
+    /***********************
+     * Trial building
+     ***********************/
+    function buildTrials() {
+      trials = [];
+      currentTrialIndex = 0;
+      let trialNum = 1;
+
+      // First 5 sequences: no squeeze
+      sequences.slice(0, 5).forEach((seq) => {
+        trials.push({
+          trialNumber: trialNum++,
+          condition: "noSqueeze",
+          sequence: seq,
+        });
+      });
+
+      // Next 5 sequences: squeeze
+      sequences.slice(5, 10).forEach((seq) => {
+        trials.push({
+          trialNumber: trialNum++,
+          condition: "squeeze",
+          sequence: seq,
+        });
+      });
+    }
+
+    function buildRecallGrid() {
+      recallGrid.innerHTML = "";
+      for (let i = 0; i < 8; i++) {
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.maxLength = 1;
+        inp.autocomplete = "off";
+        inp.inputMode = "latin";
+        recallGrid.appendChild(inp);
+      }
+    }
+
+    function updateTrialInfoText() {
+      const t = trials[currentTrialIndex];
+      const totalTrials = trials.length;
+      trialInfo.textContent = `Trial ${t.trialNumber} of ${totalTrials} – ${t.sequence.name}. Condition: ${conditionLabels[t.condition]}.`;
+    }
+
+    function updateConditionInstruction() {
+      const t = trials[currentTrialIndex];
+      conditionInstruction.textContent = `Current condition: ${conditionLabels[t.condition]}`;
+    }
+
+    function resetTrialDisplay() {
+      sequenceDisplay.textContent = "";
+      recallPhase.classList.add("hidden");
+      showSequenceBtn.disabled = false;
+      saveTrialBtn.disabled = true;
+      timerHint.textContent = "";
+    }
+
+    /***********************
+     * Sequence display
+     ***********************/
+    function showSequence() {
+      const t = trials[currentTrialIndex];
+      const letters = t.sequence.letters;
+      sequenceDisplay.textContent = letters.join(" ");
+      timerHint.textContent = `Letters will disappear after ${
+        exposureTimeMs / 1000
+      } seconds.`;
+      showSequenceBtn.disabled = true;
+      recallPhase.classList.add("hidden");
+      saveTrialBtn.disabled = true;
+
+      if (currentTimerId) clearTimeout(currentTimerId);
+      currentTimerId = setTimeout(() => {
+        sequenceDisplay.textContent = "";
+        timerHint.textContent = "Now recall the letters in order.";
+        recallPhase.classList.remove("hidden");
+        saveTrialBtn.disabled = false;
+        const firstBox = recallGrid.querySelector("input");
+        if (firstBox) firstBox.focus();
+        currentTimerId = null;
+      }, exposureTimeMs);
+    }
+
+    /***********************
+     * Save current trial
+     ***********************/
+    function saveCurrentTrial() {
+      const t = trials[currentTrialIndex];
+      const inputs = Array.from(recallGrid.querySelectorAll("input"));
+      const responses = inputs.map((inp) => inp.value.trim().toUpperCase());
+
+      const anyEmpty = responses.some((val) => val === "");
+      if (anyEmpty) {
+        alert("Please fill in all 8 boxes before continuing.");
+        return;
+      }
+
+      for (let i = 0; i < 8; i++) {
+        const correctLetter = t.sequence.letters[i].toUpperCase();
+        const resp = responses[i];
+        const rhFlag = t.sequence.rhymingFlags[i] ? 1 : 0;
+        const isCorrect = resp === correctLetter ? 1 : 0;
+
+        results.push({
+          participantId,
+          condition: t.condition,
+          trialNumber: t.trialNumber,
+          sequenceId: t.sequence.id,
+          sequenceName: t.sequence.name,
+          position: i + 1,
+          correctLetter,
+          responseLetter: resp,
+          isCorrect,
+          rhymingFlag: rhFlag,
+        });
+      }
+
+      currentTrialIndex++;
+      if (currentTrialIndex >= trials.length) {
+        finishExperiment();
+      } else {
+        recallGrid.querySelectorAll("input").forEach((inp) => { inp.value = ""; });
+        updateConditionInstruction();
+        updateTrialInfoText();
+        resetTrialDisplay();
+      }
+    }
+
+    /***********************
+     * Summary computation
+     ***********************/
+    function computeSummary(results) {
+      const summary = {
+        noSqueeze: {
+          rhyming: { errors: 0, total: 0 },
+          nonRhyming: { errors: 0, total: 0 },
+        },
+        squeeze: {
+          rhyming: { errors: 0, total: 0 },
+          nonRhyming: { errors: 0, total: 0 },
+        },
+      };
+
+      results.forEach((row) => {
+        const cond = row.condition;
+        const type = row.rhymingFlag === 1 ? "rhyming" : "nonRhyming";
+        summary[cond][type].total += 1;
+        if (!row.isCorrect) summary[cond][type].errors += 1;
+      });
+
+      return summary;
+    }
+
+    function renderSummaryTable() {
+      const summary = computeSummary(results);
+      let html = "<table><thead><tr>";
+      html +=
+        "<th>Condition</th><th>Letter type</th><th>Errors</th><th>Total letters</th><th>Error rate (%)</th>";
+      html += "</tr></thead><tbody>";
+
+      ["noSqueeze", "squeeze"].forEach((cond) => {
+        ["rhyming", "nonRhyming"].forEach((type) => {
+          const data = summary[cond][type];
+          const pct =
+            data.total > 0
+              ? ((data.errors / data.total) * 100).toFixed(1)
+              : "0.0";
+          html += "<tr>";
+          html += `<td>${conditionLabels[cond]}</td>`;
+          html += `<td>${type === "rhyming" ? "Rhyming letters" : "Non-rhyming letters"}</td>`;
+          html += `<td>${data.errors}</td>`;
+          html += `<td>${data.total}</td>`;
+          html += `<td>${pct}</td>`;
+          html += "</tr>";
+        });
+      });
+
+      html += "</tbody></table>";
+      summaryTableContainer.innerHTML = html;
+    }
+
+    /***********************
+     * CSV download
+     ***********************/
+    function downloadCsv() {
+      if (!results.length) {
+        alert("No data to export.");
+        return;
+      }
+
+      const headers = [
+        "participantId",
+        "condition",
+        "trialNumber",
+        "sequenceId",
+        "sequenceName",
+        "position",
+        "correctLetter",
+        "responseLetter",
+        "isCorrect",
+        "rhymingFlag",
+      ];
+
+      const detailRows = results.map((row) =>
+        headers
+          .map((h) => {
+            const val = row[h];
+            const safe =
+              typeof val === "string" ? val.replace(/\"/g, '""') : String(val);
+            return `"${safe}"`;
+          })
+          .join(",")
+      );
+
+      const summary = computeSummary(results);
+      const summaryHeaders = [
+        "condition",
+        "letterType",
+        "errors",
+        "totalLetters",
+        "errorRatePercent",
+      ];
+      const summaryRows = [];
+
+      ["noSqueeze", "squeeze"].forEach((cond) => {
+        ["rhyming", "nonRhyming"].forEach((type) => {
+          const data = summary[cond][type];
+          const pct =
+            data.total > 0
+              ? ((data.errors / data.total) * 100).toFixed(1)
+              : "0.0";
+          const labelType =
+            type === "rhyming" ? "Rhyming letters" : "Non-rhyming letters";
+          const row = [
+            conditionLabels[cond],
+            labelType,
+            String(data.errors),
+            String(data.total),
+            String(pct),
+          ];
+          summaryRows.push(
+            row
+              .map((v) =>
+                typeof v === "string" ? `"${v.replace(/\"/g, '""')}"` : `"${v}"`
+              )
+              .join(",")
+          );
+        });
+      });
+
+      const csvContent = [
+        headers.join(","),
+        ...detailRows,
+        "",
+        "#SUMMARY_TOTAL_ERRORS_FOR_EACH_CONDITION_AND_LETTER_TYPE",
+        summaryHeaders.join(","),
+        ...summaryRows,
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      const pidSafe = participantId || "participant";
+      link.download = `phonological_similarity_thumb_squeeze_${pidSafe}.csv`;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    /***********************
+     * Finish + events
+     ***********************/
+    function finishExperiment() {
+      experimentCard.classList.add("hidden");
+      renderSummaryTable();
+      summaryCard.classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    startBtn.addEventListener("click", () => {
+      participantId = participantIdInput.value.trim();
+      if (!participantId) {
+        alert("Please enter a Participant ID before starting.");
+        return;
+      }
+
+      buildTrials();
+      buildRecallGrid();
+      results = [];
+
+      setupCard.classList.add("hidden");
+      summaryCard.classList.add("hidden");
+      experimentCard.classList.remove("hidden");
+
+      updateConditionInstruction();
+      updateTrialInfoText();
+      resetTrialDisplay();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    showSequenceBtn.addEventListener("click", showSequence);
+    saveTrialBtn.addEventListener("click", saveCurrentTrial);
+    downloadCsvBtn.addEventListener("click", downloadCsv);
+  </script>
+</body>
+</html>
