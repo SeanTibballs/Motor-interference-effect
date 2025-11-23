@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Phonological Similarity – Thumb-Pad Squeeze Experiment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f4f5fb;
+      color: #222;
+    }
+    h1, h2, h3 {
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    }
+    label {
+      display: block;
+      margin: 6px 0 2px;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.95rem;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 4px 4px 4px 0;
+      background: #4b6bff;
+      color: #fff;
+      transition: transform 0.05s ease, box-shadow 0.05s ease,
+        background 0.1s ease;
+    }
+    button:hover {
+      background: #3954d5;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+      transform: translateY(-1px);
+    }
+    button.secondary {
+      background: #e0e3ff;
+      color: #223;
+    }
+    button.secondary:hover {
+      background: #c5cbff;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+    .small-text {
+      font-size: 0.85rem;
+      color: #555;
+    }
+    .hidden {
+      display: none;
+    }
+    .flex-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sequence-display {
+      font-size: 2rem;
+      letter-spacing: 0.5rem;
+      text-align: center;
+      margin: 24px 0 12px;
+      font-weight: 700;
+    }
+    .condition-instruction {
+      font-weight: 600;
+      color: #1e3a8a;
+      margin-bottom: 4px;
+    }
+    .trial-info {
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    .notice {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #eef2ff;
+      color: #1e3a8a;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(28px, 1fr));
+      gap: 6px;
+      margin: 10px 0 6px;
+    }
+    .grid input[type="text"] {
+      text-align: center;
+      font-size: 1rem;
+      padding: 6px 2px;
+      text-transform: uppercase;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    th {
+      background: #eef2ff;
+      font-weight: 600;
+    }
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 0.8rem;
+      background: #eef2ff;
+      color: #1e3a8a;
+      margin-right: 6px;
+    }
+    .tag.rhyming {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .tag.non-rhyming {
+      background: #dcfce7;
+      color: #166534;
+    }
+    @media (max-width: 600px) {
+      .sequence-display {
+        font-size: 1.5rem;
+        letter-spacing: 0.25rem;
+      }
+      .grid {
+        gap: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Phonological Similarity – Thumb-Pad Squeeze Experiment</h1>
+
+  <div class="card">
+    <p class="small-text">
+      This app runs your within-subjects experiment with two conditions
+      in a single run:
+      <strong>Trials 1–5: No squeeze (hands relaxed)</strong> and
+      <strong>Trials 6–10: Thumb-pad squeeze (thenar eminence)</strong>.
+      Letter sequences are shown for a fixed
+      <strong>20 seconds</strong> each. Responses are stored and can be
+      downloaded as a CSV.
+    </p>
+    <p class="small-text">
+      <strong>Important:</strong> The example letter sequences below are placeholders.
+      Edit the <code>sequences</code> array in the script so the letters
+      and rhyming positions match your official worksheet.
+    </p>
+  </div>
+
+  <!-- SETUP -->
+  <div class="card" id="setup-card">
+    <h2>Setup</h2>
+    <div class="flex-col">
+      <div>
+        <label for="participantId">Participant ID</label>
+        <input id="participantId" type="text" placeholder="e.g., P01" />
+      </div>
+      <div>
+        <button type="button" id="startBtn">Start experiment</button>
+      </div>
+      <p class="small-text">
+        The app will automatically run:
+        Trials 1–5 with hands relaxed (no squeeze),<br />
+        Trials 6–10 with continuous thumb-pad squeezing
+        (squeeze the fleshy pad below the thumb of the non-dominant hand).
+      </p>
+    </div>
+  </div>
+
+  <!-- EXPERIMENT -->
+  <div class="card hidden" id="experiment-card">
+    <h2>Experiment in progress</h2>
+    <div id="conditionInstruction" class="condition-instruction"></div>
+    <div id="trialInfo" class="trial-info"></div>
+
+    <div id="sequencePhase">
+      <button type="button" id="showSequenceBtn">Show letters</button>
+      <div id="sequenceDisplay" class="sequence-display"></div>
+      <div id="timerHint" class="small-text"></div>
+    </div>
+
+    <div id="recallPhase" class="hidden">
+      <p><strong>Recall:</strong> Type the letters in order.</p>
+      <div id="recallGrid" class="grid"></div>
+      <div class="small-text">
+        One letter per box. Use English letters only.
+      </div>
+      <button type="button" id="saveTrialBtn">
+        Save response &amp; next trial
+      </button>
+    </div>
+
+    <div class="notice" id="phaseNotice">
+      For trials 1–5, keep your hands relaxed.<br />
+      For trials 6–10, continuously squeeze the thumb pad (thenar eminence)
+      of your non-dominant hand using your other hand.<br /><br />
+      1. Read the condition instruction at the top.<br />
+      2. Get into the correct hand position.<br />
+      3. Click <strong>Show letters</strong> when you are ready.
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="card hidden" id="summary-card">
+    <h2>Summary</h2>
+    <p>
+      The table below shows total errors for
+      <span class="tag rhyming">Rhyming letters</span> and
+      <span class="tag non-rhyming">Non-rhyming letters</span> under each
+      condition (No squeeze vs Thumb-pad squeeze).
+    </p>
+    <div id="summaryTableContainer"></div>
+    <button type="button" id="downloadCsvBtn">Download CSV data</button>
+    <p class="small-text">
+      CSV includes trial-by-trial, letter-by-letter data:
+      participant ID, condition, trial, sequence, position, correct letter,
+      response, correctness, and rhyming vs non-rhyming.
+    </p>
+  </div>
+
+  <script>
+    /**************************************************************
+     * CONFIGURATION: LETTER SEQUENCES
+     *
+     * Replace these example sequences with the exact rows
+     * from your "Phonological similarity" worksheet.
+     *
+     * For each sequence:
+     * - letters: the 8 letters shown (as strings)
+     * - rhymingFlags: 1 = rhyming/similar sounding letter, 0 = non-rhyming
+     **************************************************************/
+    const sequences = [
+      {
+        id: 1,
+        name: "Row 1",
+        letters: ["B", "C", "D", "G", "P", "T", "H", "F"],
+        rhymingFlags: [1, 1, 1, 1, 1, 1, 0, 0],
+      },
+      {
+        id: 2,
+        name: "Row 2",
+        letters: ["H", "F", "M", "Q", "R", "S", "Z", "B"],
+        rhymingFlags: [0, 0, 0, 0, 0, 0, 0, 1],
+      },
+      {
+        id: 3,
+        name: "Row 3",
+        letters: ["T", "P", "G", "D", "C", "B", "M", "R"],
+        rhymingFlags: [1, 1, 1, 1, 1, 1, 0, 0],
+      },
+      {
+        id: 4,
+        name: "Row 4",
+        letters: ["M", "R", "S", "Z", "H", "F", "Q", "T"],
+        rhymingFlags: [0, 0, 0, 0, 0, 0, 0, 1],
+      },
+      {
+        id: 5,
+        name: "Row 5",
+        letters: ["B", "T", "P", "C", "D", "G", "S", "Z"],
+        rhymingFlags: [1, 1, 1, 1, 1, 1, 0, 0],
+      },
+      {
+        id: 6,
+        name: "Row 6",
+        letters: ["H", "Q", "M", "F", "R", "S", "Z", "G"],
+        rhymingFlags: [0, 0, 0, 0, 0, 0, 0, 1],
+      },
+      {
+        id: 7,
+        name: "Row 7",
+        letters: ["C", "D", "G", "P", "T", "B", "H", "M"],
+        rhymingFlags: [1, 1, 1, 1, 1, 1, 0, 0],
+      },
+      {
+        id: 8,
+        name: "Row 8",
+        letters: ["M", "H", "F", "Q", "R", "S", "Z", "P"],
+        rhymingFlags: [0, 0, 0, 0, 0, 0, 0, 1],
+      },
+      {
+        id: 9,
+        name: "Row 9",
+        letters: ["D", "B", "C", "G", "P", "T", "R", "F"],
+        rhymingFlags: [1, 1, 1, 1, 1, 1, 0, 0],
+      },
+      {
+        id: 10,
+        name: "Row 10",
+        letters: ["F", "H", "M", "Q", "R", "S", "Z", "C"],
+        rhymingFlags: [0, 0, 0, 0, 0, 0, 0, 1],
+      },
+    ];
+
+    // Conditions:
+    // - "noSqueeze": trials 1–5
+    // - "squeeze": trials 6–10
+    const conditionLabels = {
+      noSqueeze: "No squeeze (hands relaxed)",
+      squeeze:
+        "Thumb-pad squeeze (continuous squeezing of the thenar eminence of non-dominant hand)",
+    };
+
+    // Fixed exposure time: 20 seconds
+    const exposureTimeMs = 20000;
+
+    // Global state
+    let participantId = "";
+    let trials = [];
+    let currentTrialIndex = 0;
+    let results = [];
+    let currentTimerId = null;
+
+    // DOM refs
+    const setupCard = document.getElementById("setup-card");
+    const experimentCard = document.getElementById("experiment-card");
+    const summaryCard = document.getElementById("summary-card");
+
+    const participantIdInput = document.getElementById("participantId");
+    const startBtn = document.getElementById("startBtn");
+
+    const conditionInstruction = document.getElementById(
+      "conditionInstruction"
+    );
+    const trialInfo = document.getElementById("trialInfo");
+    const showSequenceBtn = document.getElementById("showSequenceBtn");
+    const sequenceDisplay = document.getElementById("sequenceDisplay");
+    const timerHint = document.getElementById("timerHint");
+
+    const recallPhase = document.getElementById("recallPhase");
+    const recallGrid = document.getElementById("recallGrid");
+    const saveTrialBtn = document.getElementById("saveTrialBtn");
+    const summaryTableContainer = document.getElementById(
+      "summaryTableContainer"
+    );
+    const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+
+    function buildTrials() {
+      trials = [];
+      currentTrialIndex = 0;
+      let trialNum = 1;
+
+      // First 5 sequences: no squeeze
+      sequences.slice(0, 5).forEach((seq) => {
+        trials.push({
+          trialNumber: trialNum++,
+          condition: "noSqueeze",
+          sequence: seq,
+        });
+      });
+
+      // Next 5 sequences: squeeze
+      sequences.slice(5, 10).forEach((seq) => {
+        trials.push({
+          trialNumber: trialNum++,
+          condition: "squeeze",
+          sequence: seq,
+        });
+      });
+    }
+
+    function buildRecallGrid() {
+      recallGrid.innerHTML = "";
+      for (let i = 0; i < 8; i++) {
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.maxLength = 1;
+        inp.autocomplete = "off";
+        inp.inputMode = "latin";
+        recallGrid.appendChild(inp);
+      }
+    }
+
+    function updateTrialInfoText() {
+      const t = trials[currentTrialIndex];
+      const totalTrials = trials.length;
+      trialInfo.textContent = `Trial ${t.trialNumber} of ${totalTrials} – ${t.sequence.name}. Condition: ${conditionLabels[t.condition]}.`;
+    }
+
+    function updateConditionInstruction() {
+      const t = trials[currentTrialIndex];
+      conditionInstruction.textContent = `Current condition: ${conditionLabels[t.condition]}`;
+    }
+
+    function resetTrialDisplay() {
+      sequenceDisplay.textContent = "";
+      recallPhase.classList.add("hidden");
+      showSequenceBtn.disabled = false;
+      saveTrialBtn.disabled = true;
+      timerHint.textContent = "";
+    }
+
+    function showSequence() {
+      const t = trials[currentTrialIndex];
+      const letters = t.sequence.letters;
+      sequenceDisplay.textContent = letters.join(" ");
+      timerHint.textContent = `Letters will disappear after ${
+        exposureTimeMs / 1000
+      } seconds.`;
+      showSequenceBtn.disabled = true;
+      recallPhase.classList.add("hidden");
+      saveTrialBtn.disabled = true;
+
+      if (currentTimerId) {
+        clearTimeout(currentTimerId);
+      }
+      currentTimerId = setTimeout(() => {
+        sequenceDisplay.textContent = "";
+        timerHint.textContent = "Now recall the letters in order.";
+        recallPhase.classList.remove("hidden");
+        saveTrialBtn.disabled = false;
+        const firstBox = recallGrid.querySelector("input");
+        if (firstBox) firstBox.focus();
+        currentTimerId = null;
+      }, exposureTimeMs);
+    }
+
+    function saveCurrentTrial() {
+      const t = trials[currentTrialIndex];
+      const inputs = Array.from(recallGrid.querySelectorAll("input"));
+      const responses = inputs.map((inp) => inp.value.trim().toUpperCase());
+
+      const anyEmpty = responses.some((val) => val === "");
+      if (anyEmpty) {
+        alert("Please fill in all 8 boxes before continuing.");
+        return;
+      }
+
+      for (let i = 0; i < 8; i++) {
+        const correctLetter = t.sequence.letters[i].toUpperCase();
+        const resp = responses[i];
+        const rhFlag = t.sequence.rhymingFlags[i] ? 1 : 0;
+        const isCorrect = resp === correctLetter ? 1 : 0;
+
+        results.push({
+          participantId,
+          condition: t.condition,
+          trialNumber: t.trialNumber,
+          sequenceId: t.sequence.id,
+          sequenceName: t.sequence.name,
+          position: i + 1,
+          correctLetter,
+          responseLetter: resp,
+          isCorrect,
+          rhymingFlag: rhFlag,
+        });
+      }
+
+      currentTrialIndex++;
+      if (currentTrialIndex >= trials.length) {
+        finishExperiment();
+      } else {
+        recallGrid.querySelectorAll("input").forEach((inp) => {
+          inp.value = "";
+        });
+        updateConditionInstruction();
+        updateTrialInfoText();
+        resetTrialDisplay();
+      }
+    }
+
+    function computeSummary(results) {
+      const summary = {
+        noSqueeze: {
+          rhyming: { errors: 0, total: 0 },
+          nonRhyming: { errors: 0, total: 0 },
+        },
+        squeeze: {
+          rhyming: { errors: 0, total: 0 },
+          nonRhyming: { errors: 0, total: 0 },
+        },
+      };
+
+      results.forEach((row) => {
+        const cond = row.condition;
+        const type = row.rhymingFlag === 1 ? "rhyming" : "nonRhyming";
+        summary[cond][type].total += 1;
+        if (!row.isCorrect) {
+          summary[cond][type].errors += 1;
+        }
+      });
+
+      return summary;
+    }
+
+    function renderSummaryTable() {
+      const summary = computeSummary(results);
+      let html = "<table><thead><tr>";
+      html +=
+        "<th>Condition</th><th>Letter type</th><th>Errors</th><th>Total letters</th><th>Error rate (%)</th>";
+      html += "</tr></thead><tbody>";
+
+      ["noSqueeze", "squeeze"].forEach((cond) => {
+        ["rhyming", "nonRhyming"].forEach((type) => {
+          const data = summary[cond][type];
+          const pct =
+            data.total > 0
+              ? ((data.errors / data.total) * 100).toFixed(1)
+              : "0.0";
+          html += "<tr>";
+          html += `<td>${conditionLabels[cond]}</td>`;
+          html += `<td>${
+            type === "rhyming" ? "Rhyming letters" : "Non-rhyming letters"
+          }</td>`;
+          html += `<td>${data.errors}</td>`;
+          html += `<td>${data.total}</td>`;
+          html += `<td>${pct}</td>`;
+          html += "</tr>";
+        });
+      });
+
+      html += "</tbody></table>";
+      summaryTableContainer.innerHTML = html;
+    }
+
+    function downloadCsv() {
+      if (!results.length) {
+        alert("No data to export.");
+        return;
+      }
+
+      const headers = [
+        "participantId",
+        "condition",
+        "trialNumber",
+        "sequenceId",
+        "sequenceName",
+        "position",
+        "correctLetter",
+        "responseLetter",
+        "isCorrect",
+        "rhymingFlag",
+      ];
+
+      const rows = results.map((row) =>
+        headers
+          .map((h) => {
+            const val = row[h];
+            const safe =
+              typeof val === "string" ? val.replace(/\"/g, '""') : String(val);
+            return `"${safe}"`;
+          })
+          .join(",")
+      );
+
+      const csvContent = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      const pidSafe = participantId || "participant";
+      link.download = `phonological_experiment_${pidSafe}.csv`;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function finishExperiment() {
+      experimentCard.classList.add("hidden");
+      renderSummaryTable();
+      summaryCard.classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Event listeners
+    startBtn.addEventListener("click", () => {
+      participantId = participantIdInput.value.trim();
+      if (!participantId) {
+        alert("Please enter a Participant ID before starting.");
+        return;
+      }
+
+      buildTrials();
+      buildRecallGrid();
+      results = [];
+
+      setupCard.classList.add("hidden");
+      summaryCard.classList.add("hidden");
+      experimentCard.classList.remove("hidden");
+
+      updateConditionInstruction();
+      updateTrialInfoText();
+      resetTrialDisplay();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    showSequenceBtn.addEventListener("click", showSequence);
+    saveTrialBtn.addEventListener("click", saveCurrentTrial);
+    downloadCsvBtn.addEventListener("click", downloadCsv);
+  </script>
+</body>
+</html>
